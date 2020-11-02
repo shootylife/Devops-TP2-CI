@@ -1,0 +1,40 @@
+version: 2.1
+worflows:
+  workflow:
+    jobs:
+      - build
+      - lint
+      - test
+jobs:
+  build: &shared-config
+    docker:
+      - image: cimg/node:14.10.1
+        auth:
+          username: mydockerhub-user
+          password: $DOCKERHUB_PASSWORD
+    steps:
+      - checkout
+      - restore_cache:
+          keys:
+            - npm-v1-dependencies-{{ checksum "yarn.lock" }}
+      - run: yarn global add node-gyp && yarn install
+      - save_cache:
+          key: npm-v1-dependencies-{{ checksum "yarn.lock" }}
+          paths:
+            - ./node_modules
+  lint:
+    <<: *shared-config
+    steps:
+      - checkout
+      - restore_cache:
+          keys:
+            - npm-v1-dependencies-{{ checksum "yarn.lock" }}
+      - run: yarn lint && yarn format:check
+  test:
+    <<: *shared-config
+    steps:
+      - checkout
+      - restore_cache:
+          keys:
+            - npm-v1-dependencies-{{ checksum "yarn.lock" }}
+      - run: yarn test:ci
